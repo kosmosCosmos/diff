@@ -70,9 +70,9 @@ func main() {
 				}
 			}
 		}
-		engine.Sync2(new(cat_diff))
+		engine.Sync2(new(nogi_diff))
 		affected, err := engine.Insert(&users)
-		users = make([]cat_diff, 0)
+		users = make([]nogi_diff, 0)
 		fmt.Println(affected, err)
 		return true
 	})
