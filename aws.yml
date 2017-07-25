@@ -1,0 +1,7 @@
+db:
+      host: awsmysql.ctm3uoan9r5h.us-east-1.rds.amazonaws.com
+      port: 3306
+      user: root
+      password: -ggggw159874
+      database: hots
+      colum: akb_time
