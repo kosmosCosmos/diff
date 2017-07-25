@@ -21,10 +21,11 @@ var Config = struct {
 		   Password string
 		   Port     string `default:"3306"`
 		   Database string
+		   Colum    string
 	   }
 }{}
 
-type diff struct {
+type akb_diff struct {
 	Author string
 	Diff   int64
 	Href   string
@@ -32,18 +33,18 @@ type diff struct {
 	Time   int64
 }
 
-var users []diff
+var users []akb_diff
 
 func main() {
-	sql := "SELECT DISTINCT title FROM nogi_time "
-	configor.Load(&Config, "./aws.yml")
+	configor.Load(&Config, "./config.yml")
+	sql := "SELECT DISTINCT title FROM "+Config.DB.Colum
 	engine, _ = xorm.NewEngine("mysql", Config.DB.User + ":" + Config.DB.Password + "@tcp(" + Config.DB.Host + ":" + Config.DB.Port + ")/" + Config.DB.Database)
 	engine.Logger().SetLevel(core.LOG_DEBUG)
 	Alltitle, _ := engine.Sql(sql).Query().Json()
 	gjson.Parse(Alltitle).ForEach(func(key, value gjson.Result) bool {
 		replynum := make([]int64, 0)
 		title := value.Get("title").String()
-		sql = "SELECT replynum,time,title,href,author FROM nogi_time WHERE title=? "
+		sql = "SELECT replynum,time,title,href,author FROM "+Config.DB.Colum+" WHERE title=? "
 		ReplyNumList, _ := engine.Sql(sql, title).Query().Json()
 		gjson.Parse(ReplyNumList).ForEach(func(key, value gjson.Result) bool {
 			replynum = append(replynum, value.Get("replynum").Int())
@@ -56,8 +57,11 @@ func main() {
 				data, _ := content.Find("#j_p_postlist > div.l_post.j_l_post.l_post_bright.noborder").Attr("data-field")
 				tm, _ := time.Parse("2006-01-02 15:04", gjson.Parse(data).Get("content.date").String())
 				replytime := gjson.Parse(ReplyNumList).Get(strconv.Itoa(i)).Get("time").Int()
-				if replytime - tm.Unix() > int64(3600) {
-					fmt.Println("error")
+				if replytime - tm.Unix() < int64(3600) {
+					json := gjson.Parse(ReplyNumList).Get("0")
+					diff := json.Get("replynum").Int()
+					user := akb_diff{Author:json.Get("author").String(), Diff:diff, Href:json.Get("href").String(), Time:json.Get("time").Int(), Title:json.Get("title").String()}
+					users = append(users, user)
 				}
 				once = false
 			}
@@ -65,14 +69,14 @@ func main() {
 				diff := gjson.Parse(ReplyNumList).Get(strconv.Itoa(i)).Get("replynum").Int() - gjson.Parse(ReplyNumList).Get(strconv.Itoa(i - 1)).Get("replynum").Int()
 				if diff > 0 {
 					json := gjson.Parse(ReplyNumList).Get(strconv.Itoa(i - 1))
-					user := diff{Author:json.Get("author").String(), Diff:diff, Href:json.Get("href").String(), Time:json.Get("time").Int(), Title:json.Get("title").String()}
+					user := akb_diff{Author:json.Get("author").String(), Diff:diff, Href:json.Get("href").String(), Time:json.Get("time").Int(), Title:json.Get("title").String()}
 					users = append(users, user)
 				}
 			}
 		}
-		engine.Sync2(new(diff))
+		engine.Sync2(new(akb_diff))
 		affected, err := engine.Insert(&users)
-		users = make([]diff, 0)
+		users = make([]akb_diff, 0)
 		fmt.Println(affected, err)
 		return true
 	})
