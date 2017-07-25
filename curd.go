@@ -24,7 +24,7 @@ var Config = struct {
 	   }
 }{}
 
-type nogi_diff struct {
+type diff struct {
 	Author string
 	Diff   int64
 	Href   string
@@ -32,7 +32,7 @@ type nogi_diff struct {
 	Time   int64
 }
 
-var users []nogi_diff
+var users []diff
 
 func main() {
 	sql := "SELECT DISTINCT title FROM nogi_time "
@@ -65,14 +65,14 @@ func main() {
 				diff := gjson.Parse(ReplyNumList).Get(strconv.Itoa(i)).Get("replynum").Int() - gjson.Parse(ReplyNumList).Get(strconv.Itoa(i - 1)).Get("replynum").Int()
 				if diff > 0 {
 					json := gjson.Parse(ReplyNumList).Get(strconv.Itoa(i - 1))
-					user := nogi_diff{Author:json.Get("author").String(), Diff:diff, Href:json.Get("href").String(), Time:json.Get("time").Int(), Title:json.Get("title").String()}
+					user := diff{Author:json.Get("author").String(), Diff:diff, Href:json.Get("href").String(), Time:json.Get("time").Int(), Title:json.Get("title").String()}
 					users = append(users, user)
 				}
 			}
 		}
-		engine.Sync2(new(nogi_diff))
+		engine.Sync2(new(diff))
 		affected, err := engine.Insert(&users)
-		users = make([]nogi_diff, 0)
+		users = make([]diff, 0)
 		fmt.Println(affected, err)
 		return true
 	})
